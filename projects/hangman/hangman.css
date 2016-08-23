@@ -1,0 +1,119 @@
+*{
+  box-sizing: border-box;
+  text-align: center;
+  font-family: sans-serif;
+
+}
+body{
+    background-color: aliceblue;
+}
+.outer{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+.overlay{
+    width: 100%;
+    height: 100%;
+    background-color: cornflowerblue;
+    z-index: 30;
+    opacity: 0.3;
+    position: fixed;
+    overflow: hidden;
+}
+.startButton{
+    padding: 25px;
+    font-size: 90px;
+    border: 2px solid black;
+    border-radius: 80px;
+    display: inline-block;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    z-index: 40;
+    transform: translateY(100%);
+}
+
+.title{
+    position: relative;
+    font-size: 60px;
+    display: block;
+    transform: translateY(-140%);
+}
+.invisible{
+    transform: translateY(-120%);
+}
+.hidden{
+    display: none;
+}
+canvas{
+    position: relative;
+    left: -25%;
+    border: grey solid 1px;
+}
+.linesContainer{
+  position: relative;
+  width: auto;
+  display: inline-block;
+
+}
+
+.line{
+  height: 40px;
+  width: 40px;
+  position: relative;
+  display: inline-block;
+}
+
+.letter{
+  font-size: 40px;
+  text-align: center;
+  position: absolute;
+  display: none;
+  text-transform: uppercase;
+}
+
+.displayLine{
+  border-bottom: solid 3px black;
+}
+
+.displayLetter{
+  display: inline-block;
+}
+
+
+
+#wrongletters{
+  font-size: 45px;
+  color: black;
+  text-decoration: line-through;
+  text-transform: uppercase;
+  width: 400px;
+  height: 60px;
+}
+.message{
+    position: absolute;
+    font-size: 125px;
+    width: 100%;
+    height: 100%;
+    top: 30%;
+}
+.playAgain{
+    padding: 25px;
+    font-size: 90px;
+    border: 2px solid black;
+    border-radius: 80px;
+    display: inline-block;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    z-index: 40;
+}
+form{
+    font-size: 30px;
+}
+.button{
+    display: inline-block;
+    height: 50px;
+    cursor: pointer;
+}

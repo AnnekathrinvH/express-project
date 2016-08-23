@@ -1,0 +1,79 @@
+body{
+  margin: 0;
+}
+#container{
+  width: 100%;
+  height: 600px;
+  position: relative;
+  overflow: hidden;
+}
+
+#kitty1{
+  background-image: url("kit1.jpg");
+}
+
+#kitty2{
+  background-image: url("kit2.jpg");
+}
+
+#kitty3{
+  background-image: url("kit3.jpg");
+}
+
+.kitty{
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  position: absolute;
+  transform: translateX(-100%);
+  transition-duration: 1s;
+  transition-property: transform;
+}
+
+.kitty.on{
+  transform: translateX(0);
+  transition-duration: 1s;
+  transition-property: transform;
+}
+
+.kitty.standby{
+  transform: translateX(100%);
+  transition-duration: 0s;
+  transition-property: transform;
+}
+
+.dotcontainer{
+  transform: translateX(50%);
+  width: 300px;
+  height: 70px;
+  position: absolute;
+  bottom: 5px;
+}
+
+.dot{
+  height: 50px;
+  width: 50px;
+  border-radius: 50%;
+  border-color: white;
+  border-style: solid;
+  border-width: thick;
+  display: inline-block;
+  z-index: 10;
+  position: absolute;
+  bottom: 5px;
+  cursor: pointer;
+}
+#dot1{
+  left: 0px;
+}
+#dot2{
+  left: 70px;
+}
+#dot3{
+  left: 140px;
+}
+
+.active{
+  background-color: white;
+}

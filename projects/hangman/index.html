@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link type="text/css" rel="stylesheet" href="hangman.css">
+    <title>Hangman</title>
+</head>
+<body>
+    <div class="outer">
+        <div class="overlay"></div>
+        <div class="startButton">START</div>
+        <div class="title">PLAY HANGMAN</div>
+    </div>
+
+        <canvas id="canv1" width="420" height="700"></canvas>
+    <div>
+        <div class="linesContainer">
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+          <div class="line"><div class="letter"></div></div>
+      </div>
+      <div id="wrongletters"></div>
+  </div>
+      <form id="form">
+      <div>
+          <label for="input">SUBMIT A LETTER<label>
+          <input type="text" id="input" maxlength="1">
+         </div>
+         <div class="button">
+             <button type="submit">SUBMIT</button>
+        </div>
+    </form>
+    <form id="form2">
+        <div>
+            <label class="hidden" for="solve" id="solve">YOUR GUESS<label>
+            <input class="hidden" type="text" id="guess" maxlength="12">
+           </div>
+           <div class="button">
+               <button id="solveButton" type="submit">SOLVE</button>
+          </div>
+      </form>
+
+      <div class="message hidden" id="won">
+          YOU WON!
+          <div class="playAgain">PLAY AGAIN</div>
+      </div>
+      <div class="message hidden" id="lost">
+          YOU LOST!
+           <div class="playAgain">PLAY AGAIN</div>
+      </div>
+
+
+
+</body>
+<script src="hangman.js"></script>
+
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link type="text/css" rel="stylesheet" href="Spotify.css">
+    <title>SPOTIFY SEARCH</title>
+</head>
+<body>
+    <div id="header">SPOTIFY SEARCH</div>
+    <form id="form">
+        <div id="inputDiv">
+            <input type="text" id="input">
+        </div>
+        <select name="select" id="select">
+            <option value="artist" selected>ARTIST</option>
+            <option value="album">ALBUM</option>
+        </select>
+        <div class="button" id="button">
+            <button type="submit">GO</button>
+         </div>
+    </form>
+    <div id="searchTerm">
+        <script id="search" type="text/handlebars">
+                RESULTS FOR "{{searchFor}}"
+        </script>
+    </div>
+
+    <div id="Container">
+        <script id="searchResults" type="text/handlebars">
+            {{#.}}
+                <div class ="result">
+                        <a href={{external_urls.spotify}}>
+                            <img src={{images.[0].url}}>
+                        </a>
+                    <div id="name">
+                        <a href= {{external_urls.spotify}}>
+                            {{name}}
+                        </a>
+                    </div>
+                </div>
+            {{/.}}
+        </script>
+    </div>
+    <div class="button invisible" id="button2">
+    <button type="button">Get more</button>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s=" crossorigin="anonymous"></script>
+    <script src="Spotify.js"></script>
+</body>
+</html>
