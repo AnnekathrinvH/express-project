@@ -1,0 +1,22 @@
+#outer{
+  overflow: hidden;
+}
+
+#container{
+  height: 35px;
+  white-space: nowrap;
+  position: absolute;
+  right: 0;
+  border-bottom: 1px black solid;
+
+}
+
+a{
+  color: black;
+  font-size: 30px;
+  display: inline-block;
+  padding-right: 40px;
+  font-family: sans-serif;
+  text-decoration: none;
+  position: relative;
+}

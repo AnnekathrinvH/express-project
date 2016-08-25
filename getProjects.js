@@ -18,7 +18,7 @@ module.exports.getProjects = function() {
             }
         }
         function checkStatus(path, title) {
-            var newPath = path +'/'+ title;
+            var newPath = '/'+ title;
             var entry = {};
             entry.name = title;
             entry.url = newPath;
@@ -26,7 +26,5 @@ module.exports.getProjects = function() {
         }
     }
 
-    var myProjectsObject = {};
-    myProjectsObject['myProjects'] = myProjects;
-    return myProjectsObject;
+    return myProjects;
 };
