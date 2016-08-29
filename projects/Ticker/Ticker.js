@@ -52,7 +52,7 @@
         }
 
         function moveTicker() {
-            var newPosition = startPosition--;
+            var newPosition = ticker.offsetLeft-2;
             ticker.style.left = newPosition + "px";
             id = window.requestAnimationFrame(moveTicker);
             var links = document.getElementsByTagName('a');
@@ -61,7 +61,8 @@
 
             if (newPosition < -firstWidth) {
                 var old = ticker.removeChild(links[0]);
-                //newPosition -= firstWidth;
+                newPosition += firstWidth;
+                ticker.style.left = newPosition + 'px';
                 ticker.appendChild(old);
             }
         }

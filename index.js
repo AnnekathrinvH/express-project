@@ -1,7 +1,6 @@
 var express = require('express');
 var app = express();
 
-
 var userName;
 var getProjects = require('./getProjects');
 var myProjects = getProjects.getProjects();
@@ -54,11 +53,9 @@ app.get('/getaname', function(req, res) {
 });
 
 app.get('/twitter', function(req,res) {
-    twitterRequest.twitterDataRequest(function(data) {
+    twitterRequest.twitterDataRequest().then(function(data) {
         res.send(data);
-        console.log(data);
     });
-
 });
 
 app.post('/name', function(req, res) {

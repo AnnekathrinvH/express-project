@@ -4,7 +4,36 @@ var parsedResponse;
 
 var credentials = require('./credentials.json');
 
+var request = function(options) {
+    return new Promise(function(resolve, reject) {
+
+        var req = https.request(options, function(res) {
+
+            var str = '';
+            res.on('data', function(chunk) {
+                str += chunk;
+            });
+            res.on('end', function () {
+                response = str;
+                try {
+                    response = JSON.parse(response);
+                } catch(e) {
+                    reject(e);
+                console.log(e);
+                return;
+                }
+                resolve(response);
+            });
+        });
+        if (options.method === 'POST') {
+            req.write('grant_type=client_credentials');
+        }
+        req.end();
+    });
+};
+
 module.exports.twitterTokenRequest = function() {
+
     var consumerKey = credentials.consumerKey;
     var consumerSecret = credentials.consumerSecret;
     var myString = consumerKey + ':' + consumerSecret;
@@ -20,32 +49,17 @@ module.exports.twitterTokenRequest = function() {
         },
         port: 443
     };
-    var req = https.request(options, function(res) {
 
-        var str = '';
-        res.on('data', function (chunk) {
-            str += chunk;
-        });
-
-        res.on('end', function () {
-            var response = str;
-
-            try {
-                response = JSON.parse(response);
-                myToken = response.access_token;
-
-            } catch(e) {
-            console.log(e);
-            return;
-            }
-        });
+    return request(options).then(function(response) {
+        console.log('response');
+        myToken = response.access_token;
+        console.log(myToken);
     });
-    req.write('grant_type=client_credentials');
-    req.end();
 };
 
-module.exports.twitterDataRequest = function(logData) {
-    console.log('datarequest');
+
+
+module.exports.twitterDataRequest = function() {
     var response;
     var options = {
         hostname: 'api.twitter.com',
@@ -58,37 +72,19 @@ module.exports.twitterDataRequest = function(logData) {
         port: 443
     };
 
-    var req = https.request(options, function(res) {
-        var str = '';
+    return request(options).then(function(response) {
         var titlesArray = [];
         var dataObject = [];
-        res.on('data', function (chunk) {
-            str += chunk;
-        });
-        res.on('end', function () {
-            response = str;
-            try {
-                response = JSON.parse(response);
-                for (var i = 0; i <= 10; i++) {
-                    titlesArray.push(response[i].text);
-                    var entry = {};
-                    var news = (titlesArray[i].split('http'))[0];
-                    var url = 'http' + (titlesArray[i].split('http'))[1];
-                    entry.title = news;
-                    entry.link = url;
-                    dataObject.push(entry);
-                }
 
-                logData(dataObject);
-
-
-            } catch(e) {
-            console.log(e);
-            return;
-            }
-        });
+        for (var i = 0; i <= 10; i++) {
+            titlesArray.push(response[i].text);
+            var entry = {};
+            var news = (titlesArray[i].split('http'))[0];
+            var url = 'http' + (titlesArray[i].split('http'))[1];
+            entry.title = news;
+            entry.link = url;
+            dataObject.push(entry);
+        }
+        return dataObject;
     });
-    req.end();
-
-
 };
