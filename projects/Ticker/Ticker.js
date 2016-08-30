@@ -39,11 +39,11 @@
 
 
     function ticker(){
-        console.log(data);
 
         var ticker = document.getElementById('container');
+        var newPosition = ticker.offsetLeft;
+
         var id;
-        var startPosition = ticker.offsetLeft;
 
         insertLinks();
         function insertLinks() {
@@ -52,12 +52,11 @@
         }
 
         function moveTicker() {
-            var newPosition = ticker.offsetLeft-2;
+            newPosition = newPosition-1;
             ticker.style.left = newPosition + "px";
             id = window.requestAnimationFrame(moveTicker);
             var links = document.getElementsByTagName('a');
             var firstWidth = links[1].offsetLeft;
-            console.log(newPosition);
 
             if (newPosition < -firstWidth) {
                 var old = ticker.removeChild(links[0]);

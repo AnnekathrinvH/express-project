@@ -1,10 +1,9 @@
 var https = require('https');
 var myToken;
-var parsedResponse;
-
 var credentials = require('./credentials.json');
 
 var request = function(options) {
+    var response;
     return new Promise(function(resolve, reject) {
 
         var req = https.request(options, function(res) {
@@ -33,7 +32,6 @@ var request = function(options) {
 };
 
 module.exports.twitterTokenRequest = function() {
-
     var consumerKey = credentials.consumerKey;
     var consumerSecret = credentials.consumerSecret;
     var myString = consumerKey + ':' + consumerSecret;
@@ -51,16 +49,13 @@ module.exports.twitterTokenRequest = function() {
     };
 
     return request(options).then(function(response) {
-        console.log('response');
         myToken = response.access_token;
-        console.log(myToken);
     });
 };
 
 
 
 module.exports.twitterDataRequest = function() {
-    var response;
     var options = {
         hostname: 'api.twitter.com',
         path: '/1.1/statuses/user_timeline.json?screen_name=theonion',
