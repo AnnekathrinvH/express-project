@@ -1,0 +1,44 @@
+<!doctype html>
+
+<html>
+<head>
+    <title>Projects</title>
+</head>
+<body>
+    <form id="form">
+        <select name="select" id="select">
+            {{#allData}}
+            <option value="color">{{color}}</option>
+            {{/allData}}
+        </select>
+        <div class="button" id="button">
+            <button type="submit">GO</button>
+         </div>
+    </form>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>FIRST NAME</th>
+            <th>LAST NAME</th>
+            <th>AGE</th>
+            <th>CITY</th>
+            <th>HOMEPAGE</th>
+            <th>COLOR</th>
+
+        </tr>
+        {{#allData}}
+            <tr>
+                <td>{{id}}</td>
+                <td>{{first_name}}</td>
+                <td>{{last_name}}</td>
+                <td>{{age}}</td>
+                <td>{{city}}</td>
+                <td>{{homepage}}</td>
+                <td>{{color}}</td>
+            </tr>
+        {{/allData}}
+    </table>
+
+</body>
+
+</html>

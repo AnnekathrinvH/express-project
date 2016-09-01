@@ -18,13 +18,18 @@ var hb = require('express-handlebars');
 app.engine('handlebars', hb());
 app.set('view engine', 'handlebars');
 
+var pg = require('pg');
+
+var util = require('util');
+
+var getPassword = require('./credentials.json');
+var dbPassword = getPassword.dbPassword;
 
 
 
 app.use(function(req, res, next) {
     userName = req.cookies.name;
 
-    console.log('user name:'+ userName);
     console.log(req.url);
 
     if (userName) {
@@ -59,12 +64,30 @@ app.get('/twitter', function(req,res) {
 });
 
 app.post('/name', function(req, res) {
-    console.log('name page');
+    var userData = {};
+    var newId;
     if (req.body.first && req.body.last) {
-        var fullName = req.body.first + ' '+ req.body.last;
-        res.cookie('name', fullName);
-        res.redirect('myprojects');
 
+        var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+        client.connect();
+
+        var first = req.body.first.toUpperCase();
+        var last = req.body.last.toUpperCase();
+
+        var query = 'INSERT INTO user_names (first_name, last_name) VALUES ($1, $2) RETURNING id';
+        client.query(query, [first, last], function(err, results) {
+            newId = results.rows[0].id;
+            userData.first = first;
+            userData.last = last;
+            userData.dbid = newId;
+            var cookieData = JSON.stringify(userData);
+            res.cookie('name', cookieData);
+            console.log(userData);
+
+            client.end();
+            res.redirect('moreUserData');
+
+        });
     } else {
         userName = undefined;
         res.redirect('getaname');
@@ -72,8 +95,46 @@ app.post('/name', function(req, res) {
     console.log('Cookies: ', req.cookies);
 });
 
+
+
+app.post('/moreUserData', function(req, res) {
+    console.log('more');
+    var age = req.body.age;
+    var city = req.body.city.toUpperCase();
+    var homepage = req.body.homepage.toUpperCase();
+    var color = req.body.color.toUpperCase();
+    var dbid = JSON.parse((req.cookies).name).dbid;
+    var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+    client.connect();
+    var query = 'INSERT INTO user_profile (age, city, homepage, color, id) VALUES ($1, $2, $3, $4, $5)';
+
+    client.query(query, [age, city, homepage, color, dbid], function(err, results) {
+        console.log(results);
+        client.end();
+        res.redirect('users');
+    });
+
+});
+
+app.get('/users', function(req, res) {
+    console.log('Cookies: ', req.cookies);
+
+    var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+    client.connect();
+    var query = 'SELECT * FROM user_names JOIN user_profile ON user_names.id=user_profile.id';
+    client.query(query, function(err, results) {
+        var allData = results.rows;
+        res.render('userDataTable', {
+            allData: allData
+        });
+        client.end();
+
+        });
+    });
+
+
+
 app.get('/myprojects', function(req, res) {
-    console.log(myProjects);
     res.render('projectsPage', {
         myProjects
     });
