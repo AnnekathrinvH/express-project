@@ -12,7 +12,6 @@ app.use(require('body-parser').urlencoded({
     extended: false
 }));
 
-app.use(require('cookie-parser')());
 
 var hb = require('express-handlebars');
 app.engine('handlebars', hb());
@@ -36,10 +35,23 @@ client.on('error', function(err) {
     console.log(err);
 });
 
+var session = require('express-session');
+var Store = require('connect-redis')(session);
+
+app.use(session({
+    store: new Store({
+        ttl: 3600,
+        host: 'localhost',
+        port: 6379
+    }),
+    resave: false,
+    saveUninitialized: true,
+    secret: 'my super fun secret'
+}));
 
 
 app.use(function(req, res, next) {
-    userName = req.cookies.name;
+    userName = req.session.user;
     console.log('user name: '+userName);
     console.log('url: '+req.url);
 
@@ -77,40 +89,42 @@ app.post('/name', function(req, res) {
     console.log('redirected to name');
     var userData = {};
     var newId;
-    var cookieData;
 
     if (req.body.first && req.body.last) {
         console.log('if '+req.body.first);
-        var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
-        client.connect();
+        var clientPost = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+        clientPost.connect();
         var first = req.body.first.toUpperCase();
         var last = req.body.last.toUpperCase();
 
         var query = 'INSERT INTO user_names (first_name, last_name) VALUES ($1, $2) RETURNING id';
-        client.query(query, [first, last], function(err, results) {
+        clientPost.query(query, [first, last], function(err, results) {
             if (err) {
                 console.log(err);
             } else {
+
                 newId = results.rows[0].id;
-                userData.first = first;
-                userData.last = last;
-                userData.dbid = newId;
-                cookieData = JSON.stringify(userData);
-                console.log(cookieData);
+                req.session.user = first + last;
+                req.session.dbid = newId;
 
             }
-            client.end();
-            res.cookie('name', cookieData);
+            clientPost.end();
+            console.log(req.session);
+
             res.redirect('moreUserData');
         });
-
+        client.del('cacheUserData', function(err, data) {
+            if (err) {
+                console.log(err);
+            }
+            else {
+                console.log('cache deleted!');
+            }
+        });
     } else {
-        console.log('paranoia');
         userName = undefined;
-        res.redirect('getaname');
+        res.redirect('/getaname');
     }
-
-
 });
 
 
@@ -121,7 +135,7 @@ app.post('/moreUserData', function(req, res) {
     var city = req.body.city.toUpperCase();
     var homepage = req.body.homepage.toUpperCase();
     var color = req.body.color.toUpperCase();
-    var dbid = JSON.parse((req.cookies).name).dbid;
+    var dbid = req.session.dbid;
     var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
     client.connect();
     var query = 'INSERT INTO user_profile (age, city, homepage, color, id) VALUES ($1, $2, $3, $4, $5)';
@@ -137,24 +151,41 @@ app.post('/moreUserData', function(req, res) {
 });
 
 app.get('/users', function(req, res) {
-    console.log('Cookies: ', req.cookies);
+    console.log('Cookies: ', req.session);
     var colorArray = [];
     var cityArray = [];
     var selectedColor = req.query.color;
     var selectedCity = req.query.city;
     var allData;
 
-    client.get('userData', function(err, reply){
-        if (reply === null) {
-
+    client.get('cacheUserData', function(err, data){
+        if (err) {
+            return console.log(err);
         }
-    })
-    var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
-    client.connect();
-    var query = 'SELECT * FROM user_names JOIN user_profile ON user_names.id=user_profile.id';
-    client.query(query, function(err, results) {
-        allData = results.rows;
-
+        if (data === null) {
+            var clientGet = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+            clientGet.connect();
+            var query = 'SELECT * FROM user_names JOIN user_profile ON user_names.id=user_profile.id';
+            clientGet.query(query, function(err, results) {
+                allData = results.rows;
+                renderPage();
+                clientGet.end();
+                var cacheUserData = JSON.stringify(allData);
+                client.set('cacheUserData', cacheUserData, function(err, data) {
+                    if (err) {
+                        console.log(err);
+                    }
+                    else {console.log('data was stored!');
+                    }
+                });
+            });
+        } else {
+            console.log('cacheData');
+            allData = JSON.parse(data);
+            renderPage();
+        }
+    });
+    function renderPage() {
         getUniques('color', colorArray);
         getUniques('city', cityArray);
 
@@ -192,8 +223,7 @@ app.get('/users', function(req, res) {
             cityArray: cityArray,
             allData: allData
         });
-        client.end();
-    });
+    }
 });
 
 
@@ -205,7 +235,9 @@ app.get('/myprojects', function(req, res) {
 });
 
 app.get('/:project/description', function(req, res) {
-    req.params.project;
+    req.params.project(function(err) {
+        console.log(err);
+    });
     console.log('projects!!');
     for (var i = 0; i < myProjects.length; i++) {
 
@@ -221,5 +253,13 @@ app.get('/:project/description', function(req, res) {
     }
 
 });
-
+app.get('/logout', function(req, res) {
+    req.session.destroy(function(err) {
+        if (err) {
+        console.log(err);
+    }
+    console.log('loged out');
+    });
+    res.redirect('/getaname');
+});
 app.listen(8080);
