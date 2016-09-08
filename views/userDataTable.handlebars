@@ -6,10 +6,18 @@
 </head>
 <body>
     <form id="form">
-        <select name="select" id="select">
-            {{#allData}}
-            <option value="color">{{color}}</option>
-            {{/allData}}
+        <select name="color" id="select">
+             <option disabled selected value>SELECT A COLOR</option>
+            {{#colorArray}}
+            <option>{{color}}</option>
+            {{/colorArray}}
+        </select>
+        <select name="city" id="select">
+            <option disabled selected value>SELECT A CITY</option>
+
+                {{#cityArray}}
+                <option>{{city}}</option>
+                {{/cityArray}}
         </select>
         <div class="button" id="button">
             <button type="submit">GO</button>

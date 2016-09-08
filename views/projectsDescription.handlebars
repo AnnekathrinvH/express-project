@@ -1,6 +1,10 @@
 <div>
     {{#jsonDescription}}
-        <h1>{{name}}</h1>
+        <div id ="title">{{name}}</div>
         <p>{{description}}</p>
+        <div>
+            Go to the project:
+            <a href = {{link}}>{{name}}</a>
+        </div>
     {{/jsonDescription}}
 </div>
