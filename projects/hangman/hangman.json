@@ -1,4 +1,6 @@
 {
     "name": "Hangman",
-    "description": "a very exciting game"
+    "description": "a very exciting game",
+    "link": "/hangman",
+    
 }

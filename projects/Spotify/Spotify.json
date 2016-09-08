@@ -1,4 +1,6 @@
 {
     "name": "Spotify-Search",
-    "description": "a tool to search albums and artists in spotify"
+    "description": "a tool to search albums and artists in spotify",
+    "link": "/Spotify"
+
 }
