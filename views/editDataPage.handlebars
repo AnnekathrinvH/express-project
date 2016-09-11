@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+    <title>More Data</title>
+</head>
+<body>
+    <h1>CHANGE YOUR DATA
+    </h1>
+    <form action="/sendChangeUserData" method="post">
+        {{#currentUser}}
+        <div>
+            <label for="input">FIRST NAME<label>
+            <input type="text" name="first" value={{first_name}}>
+       </div>
+       <div>
+           <label for="input">LAST NAME<label>
+           <input type="text" name="last" value={{last_name}}>
+       </div>
+       <div>
+          <label for="input">EMAIL<label>
+          <input type="text" name="email" value={{email}}>
+        </div>
+        <div>
+             <label for="input">PASSWORD<label>
+             <input type="password" name="password" >
+        </div>
+        <div>
+            <label for="input">AGE<label>
+            <input type="number" name="age" value={{age}}>
+       </div>
+       <div>
+           <label for="input">CITY OF RESIDENCE<label>
+           <input type="text" name="city" value={{city}}>
+      </div>
+      <div>
+          <label for="input">HOMEPAGE<label>
+          <input type="text" name="homepage" value={{homepage}}>
+     </div>
+     <div>
+         <label for="input">FAVORITE COLOR<label>
+         <input type="text" name="color" value={{color}}>
+    </div>
+
+       <div class="button">
+           <input type="submit" value="update">
+      </div>
+      {{/currentUser}}
+    </form>
+
+</body>
+</html>

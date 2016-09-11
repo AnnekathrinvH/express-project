@@ -1,12 +1,14 @@
 var express = require('express');
 var app = express();
+var userData = {};
 
-var userName;
 var getProjects = require('./getProjects');
 var myProjects = getProjects.getProjects();
 
 var twitterRequest = require('./TwitterRequest');
 twitterRequest.twitterTokenRequest();
+
+var myFunctions = require('./functions');
 
 app.use(require('body-parser').urlencoded({
     extended: false
@@ -38,6 +40,8 @@ client.on('error', function(err) {
 var session = require('express-session');
 var Store = require('connect-redis')(session);
 
+var bcrypt = require('bcrypt');
+
 app.use(session({
     store: new Store({
         ttl: 3600,
@@ -51,19 +55,19 @@ app.use(session({
 
 
 app.use(function(req, res, next) {
-    userName = req.session.user;
-    console.log('user name: '+userName);
+    user = req.session.userData;
+    console.log('user name: '+user);
     console.log('url: '+req.url);
 
-    if (userName) {
+    if (user) {
         console.log('name there');
         return next();
     }
-    if (userName === undefined && (req.url === '/name' || req.url === '/getaname')) {
+    if (user === undefined && (req.url === '/name' || req.url === '/getaname' || req.url === '/login')) {
         console.log('go on to name');
         return next();
     }
-    if ((userName === undefined) && req.url != '/getaname') {
+    if ((user === undefined) && req.url != '/getaname') {
         console.log('redirected');
         res.redirect('/getaname');
         return next();
@@ -87,47 +91,100 @@ app.get('/twitter', function(req,res) {
 
 app.post('/name', function(req, res) {
     console.log('redirected to name');
-    var userData = {};
-    var newId;
 
-    if (req.body.first && req.body.last) {
-        console.log('if '+req.body.first);
-        var clientPost = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
-        clientPost.connect();
-        var first = req.body.first.toUpperCase();
-        var last = req.body.last.toUpperCase();
+    if (req.body.first && req.body.last && req.body.email && req.body.password) {
+        var password = req.body.password;
+        myFunctions.hashPassword(password, res, req, myFunctions.insertUserData, userData);
 
-        var query = 'INSERT INTO user_names (first_name, last_name) VALUES ($1, $2) RETURNING id';
-        clientPost.query(query, [first, last], function(err, results) {
-            if (err) {
-                console.log(err);
-            } else {
-
-                newId = results.rows[0].id;
-                req.session.user = first + last;
-                req.session.dbid = newId;
-
-            }
-            clientPost.end();
-            console.log(req.session);
-
-            res.redirect('moreUserData');
-        });
-        client.del('cacheUserData', function(err, data) {
-            if (err) {
-                console.log(err);
-            }
-            else {
-                console.log('cache deleted!');
-            }
-        });
     } else {
-        userName = undefined;
-        res.redirect('/getaname');
+    user = undefined;
+    res.redirect('/getaname');
     }
 });
 
+app.get('/changeUserData', function(req, res) {
+    //get current Data
+    console.log('change your data!');
 
+    var userId = req.session.userData.dbid;
+    var query = 'SELECT * FROM users JOIN user_profile ON users.id=user_profile.id WHERE user_profile.id = $1';
+
+    var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+    client.connect();
+    client.query(query, [userId], function(err, results) {
+        if(err) {
+            console.log(err);
+        }
+        var currentUser = results.rows;
+        console.log(currentUser);
+        client.end();
+        res.render('editDataPage', {
+            currentUser: currentUser
+        });
+    });
+});
+
+app.post('/sendChangeUserData', function(req, res) {
+    var updatedFirst = req.body.first.toUpperCase();
+    var updatedLast = req.body.last.toUpperCase();
+    var updatedEmail = req.body.email.toUpperCase();
+    var updatedPassw = req.body.password;
+    var updatedAge = req.body.age;
+    var updatedCity = req.body.city.toUpperCase();
+    var updatedHomepage = req.body.homepage.toUpperCase();
+    var updatedColor = req.body.color.toUpperCase();
+    var userId = req.session.userData.dbid;
+    console.log(typeof updatedAge);
+    console.log([updatedAge, updatedCity, updatedHomepage, updatedColor, userId]);
+    console.log(updatedCity);
+    console.log(updatedHomepage);
+
+    var userDbQuery = 'UPDATE users SET first_name = $1, last_name = $2, email = $3, password = $4 WHERE id = $5';
+    var profileDbQuery = 'UPDATE user_profile SET age = $1, city = $2, homepage = $3, color = $4 WHERE id = $5';
+    var profileArray = [updatedAge, updatedCity, updatedHomepage, updatedColor, userId];
+
+    hashPassword(updatedPassw, updateDb);
+
+    function hashPassword(plainTextPassword, callback) {
+    bcrypt.genSalt(function(err, salt) {
+        if (err) {
+            return callback(err);
+        }
+        console.log(salt);
+        bcrypt.hash(plainTextPassword, salt, function(err, hash) {
+            if (err) {
+                return callback(err);
+            }
+            console.log(hash);
+            var userArray = [updatedFirst, updatedLast, updatedEmail, hash, userId];
+            callback(null, userDbQuery, userArray, updateDb);
+        });
+    });
+}
+    function sendRes() {
+        res.send('changed');
+    }
+
+    function updateDb(err, query, queryArray, callback) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+        client.connect();
+        client.query(query, queryArray, function(err, results) {
+            if (err) {
+                console.log(err);
+                return;
+            } else {
+                console.log(results);
+                client.end();
+                callback(null, profileDbQuery, profileArray, sendRes);
+            }
+        });
+    }
+
+});
 
 app.post('/moreUserData', function(req, res) {
     console.log('more');
@@ -135,95 +192,27 @@ app.post('/moreUserData', function(req, res) {
     var city = req.body.city.toUpperCase();
     var homepage = req.body.homepage.toUpperCase();
     var color = req.body.color.toUpperCase();
-    var dbid = req.session.dbid;
+    var dbid = req.session.userData.dbid;
     var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
     client.connect();
     var query = 'INSERT INTO user_profile (age, city, homepage, color, id) VALUES ($1, $2, $3, $4, $5)';
 
     client.query(query, [age, city, homepage, color, dbid], function(err, results) {
-        console.log(results);
-        client.end();
-        res.redirect('users');
+        if (err) {
+            console.log(err);
+        } else {
+            console.log(results);
+            client.end();
+            res.redirect('users');
+        }
     });
-
-
-
 });
 
 app.get('/users', function(req, res) {
     console.log('Cookies: ', req.session);
-    var colorArray = [];
-    var cityArray = [];
-    var selectedColor = req.query.color;
-    var selectedCity = req.query.city;
     var allData;
-
-    client.get('cacheUserData', function(err, data){
-        if (err) {
-            return console.log(err);
-        }
-        if (data === null) {
-            var clientGet = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
-            clientGet.connect();
-            var query = 'SELECT * FROM user_names JOIN user_profile ON user_names.id=user_profile.id';
-            clientGet.query(query, function(err, results) {
-                allData = results.rows;
-                renderPage();
-                clientGet.end();
-                var cacheUserData = JSON.stringify(allData);
-                client.set('cacheUserData', cacheUserData, function(err, data) {
-                    if (err) {
-                        console.log(err);
-                    }
-                    else {console.log('data was stored!');
-                    }
-                });
-            });
-        } else {
-            console.log('cacheData');
-            allData = JSON.parse(data);
-            renderPage();
-        }
-    });
-    function renderPage() {
-        getUniques('color', colorArray);
-        getUniques('city', cityArray);
-
-        function getUniques(selected, myArray) {
-            var unique = {};
-            for (var i = 0; i < allData.length; i++) {
-                var key = allData[i][selected];
-                unique[key] = selected;
-            }
-            for (var colorKey in unique) {
-                var entry = {};
-                entry[selected] = colorKey;
-                myArray.push(entry);
-            }
-        }
-
-        if (selectedColor && selectedCity === undefined) {
-            allData = allData.filter(function(obj) {
-                return obj.color === selectedColor;
-            });
-        }
-        if (selectedCity && selectedColor === undefined) {
-            allData = allData.filter(function(obj) {
-                return obj.city === selectedCity;
-            });
-        }
-        if (selectedCity && selectedColor) {
-            allData = allData.filter(function(obj) {
-                return obj.color === selectedColor && obj.city === selectedCity;
-            });
-        }
-
-        res.render('userDataTable', {
-            colorArray: colorArray,
-            cityArray: cityArray,
-            allData: allData
-        });
-    }
+    var query = 'SELECT * FROM users JOIN user_profile ON users.id=user_profile.id';
+    myFunctions.getData(query, null, myFunctions.renderUserDataPage, req, res);
 });
 
 
@@ -237,6 +226,7 @@ app.get('/myprojects', function(req, res) {
 app.get('/:project/description', function(req, res) {
     req.params.project(function(err) {
         console.log(err);
+        return;
     });
     console.log('projects!!');
     for (var i = 0; i < myProjects.length; i++) {
@@ -253,12 +243,59 @@ app.get('/:project/description', function(req, res) {
     }
 
 });
+
+app.post('/login', function(req, res) {
+    console.log('login');
+    var submittedFirstName = req.body.checkFirst.toUpperCase();
+    var submittedLastName = req.body.checkLast.toUpperCase();
+    var submittedPassword = req.body.checkPassword;
+
+    console.log(submittedFirstName+submittedLastName);
+
+    var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+    client.connect();
+    var query = 'SELECT * FROM users WHERE users.first_name = $1 AND users.last_name = $2';
+    client.query(query, [submittedFirstName, submittedLastName], function(err, results) {
+        if (err) {
+            console.log(err);
+        }
+        var allData = results.rows;
+        console.log(results.rows);
+        var hashedPassword = allData[0].password;
+        console.log('submittedPassword ' +submittedPassword);
+        checkPassword(submittedPassword, hashedPassword, authorized);
+        client.end();
+    });
+
+    function checkPassword(textEnteredInLoginForm, hashedPasswordFromDatabase, callback) {
+    bcrypt.compare(textEnteredInLoginForm, hashedPasswordFromDatabase, function (err, doesMatch) {
+        if (err) {
+            return callback(err);
+        }
+        console.log(doesMatch);
+        callback(null, doesMatch);
+    });
+    }
+    function authorized(err, doesMatch) {
+        if (err) {
+            console.log(err);
+        }
+        if (doesMatch) {
+            userData.name = submittedFirstName + submittedLastName;
+            req.session.userData = userData;
+            res.send('logged in!');
+        } else {
+        res.send('no access');
+    }
+    }
+
+});
 app.get('/logout', function(req, res) {
     req.session.destroy(function(err) {
         if (err) {
         console.log(err);
     }
-    console.log('loged out');
+    console.log('logged out');
     });
     res.redirect('/getaname');
 });
