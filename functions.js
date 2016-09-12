@@ -15,7 +15,7 @@ client.on('error', function(err) {
 });
 
 
-module.exports.hashPassword = function(password, res, req, callback, userData) {
+module.exports.hashPassword = function(password, callback) {
     console.log('passw: '+password);
 
     bcrypt.genSalt(function(err, salt) {
@@ -27,47 +27,13 @@ module.exports.hashPassword = function(password, res, req, callback, userData) {
                 return callback(err);
             }
 
-            callback(null, res, req, hash, userData);
+            callback(null, hash);
         });
     });
 };
 
- module.exports.insertUserData = function(err, res, req, hash, userData) {
-    var first = req.body.first.toUpperCase();
-    var last = req.body.last.toUpperCase();
-    var email = req.body.email.toUpperCase();
-    var queryArray = [first, last, email, hash];
 
-    var pgClient = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
-    pgClient.connect();
-    var query = 'INSERT INTO users (first_name, last_name, email, password) VALUES ($1, $2, $3, $4) RETURNING id';
-    pgClient.query(query, queryArray, function(err, results) {
-        if (err) {
-            console.log(err);
-            res.redirect('/getaname');
-        } else {
-            var newId = results.rows[0].id;
-            userData.dbid = newId;
-            userData.firstName = first;
-            userData.lastName = last;
-            userData.email = email;
-            req.session.userData = userData;
-            res.redirect('moreUserData');
-
-        }
-        pgClient.end();
-    });
-    client.del('cacheUserData', function(err, data) {
-        if (err) {
-            console.log(err);
-        }
-        else {
-            console.log('cache deleted!');
-        }
-    });
-};
-
-module.exports.getData = function(query, arr, callback, req, res) {
+module.exports.getData = function(err, callback, req, res) {
     client.get('cacheUserData', function(err, data){
         if (err) {
             return console.log(err);
@@ -75,7 +41,9 @@ module.exports.getData = function(query, arr, callback, req, res) {
         if (data === null) {
             var pgClient = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
             pgClient.connect();
-            pgClient.query(query, arr, function(err, results) {
+            var query = 'SELECT * FROM users JOIN user_profile ON users.id=user_profile.id';
+
+            pgClient.query(query, function(err, results) {
                 allData = results.rows;
                 console.log('res:'+res);
                 console.log('allData:'+ allData);
@@ -141,4 +109,14 @@ module.exports.renderUserDataPage = function(req, res) {
         cityArray: cityArray,
         allData: allData
     });
+};
+
+module.exports.checkPassword = function(textEnteredInLoginForm, hashedPasswordFromDatabase, callback) {
+bcrypt.compare(textEnteredInLoginForm, hashedPasswordFromDatabase, function (err, doesMatch) {
+    if (err) {
+        return callback(err);
+    }
+    console.log(doesMatch);
+    callback(null, doesMatch);
+});
 };

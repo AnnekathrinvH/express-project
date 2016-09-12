@@ -94,8 +94,40 @@ app.post('/name', function(req, res) {
 
     if (req.body.first && req.body.last && req.body.email && req.body.password) {
         var password = req.body.password;
-        myFunctions.hashPassword(password, res, req, myFunctions.insertUserData, userData);
+        myFunctions.hashPassword(password, function(err, hash) {
+            var first = req.body.first.toUpperCase();
+            var last = req.body.last.toUpperCase();
+            var email = req.body.email.toUpperCase();
+            var queryArray = [first, last, email, hash];
 
+            var pgClient = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+            pgClient.connect();
+            var query = 'INSERT INTO users (first_name, last_name, email, password) VALUES ($1, $2, $3, $4) RETURNING id';
+            pgClient.query(query, queryArray, function(err, results) {
+                if (err) {
+                    console.log(err);
+                    res.redirect('/getaname');
+                } else {
+                    var newId = results.rows[0].id;
+                    userData.dbid = newId;
+                    userData.firstName = first;
+                    userData.lastName = last;
+                    userData.email = email;
+                    req.session.userData = userData;
+                    res.redirect('moreUserData');
+
+                }
+                pgClient.end();
+            });
+            client.del('cacheUserData', function(err, data) {
+                if (err) {
+                    return console.log(err);
+                }
+                else {
+                    console.log('cache deleted!');
+                }
+            });
+        });
     } else {
     user = undefined;
     res.redirect('/getaname');
@@ -103,9 +135,7 @@ app.post('/name', function(req, res) {
 });
 
 app.get('/changeUserData', function(req, res) {
-    //get current Data
     console.log('change your data!');
-
     var userId = req.session.userData.dbid;
     var query = 'SELECT * FROM users JOIN user_profile ON users.id=user_profile.id WHERE user_profile.id = $1';
 
@@ -113,7 +143,7 @@ app.get('/changeUserData', function(req, res) {
     client.connect();
     client.query(query, [userId], function(err, results) {
         if(err) {
-            console.log(err);
+            return console.log(err);
         }
         var currentUser = results.rows;
         console.log(currentUser);
@@ -139,51 +169,48 @@ app.post('/sendChangeUserData', function(req, res) {
     console.log(updatedCity);
     console.log(updatedHomepage);
 
-    var userDbQuery = 'UPDATE users SET first_name = $1, last_name = $2, email = $3, password = $4 WHERE id = $5';
-    var profileDbQuery = 'UPDATE user_profile SET age = $1, city = $2, homepage = $3, color = $4 WHERE id = $5';
-    var profileArray = [updatedAge, updatedCity, updatedHomepage, updatedColor, userId];
-
-    hashPassword(updatedPassw, updateDb);
-
-    function hashPassword(plainTextPassword, callback) {
-    bcrypt.genSalt(function(err, salt) {
+    myFunctions.hashPassword(updatedPassw, function(err, hash) {
         if (err) {
-            return callback(err);
+            return console.log(err);
         }
-        console.log(salt);
-        bcrypt.hash(plainTextPassword, salt, function(err, hash) {
-            if (err) {
-                return callback(err);
-            }
-            console.log(hash);
-            var userArray = [updatedFirst, updatedLast, updatedEmail, hash, userId];
-            callback(null, userDbQuery, userArray, updateDb);
-        });
-    });
-}
-    function sendRes() {
-        res.send('changed');
-    }
-
-    function updateDb(err, query, queryArray, callback) {
-        if (err) {
-            console.log(err);
-            return;
-        }
+        var query = 'UPDATE users SET first_name = $1, last_name = $2, email = $3, password = $4 WHERE id = $5';
         var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
         client.connect();
-        client.query(query, queryArray, function(err, results) {
+        client.query(query, [updatedFirst, updatedLast, updatedEmail, hash, userId], function(err, results) {
             if (err) {
-                console.log(err);
-                return;
+                return console.log(err);
             } else {
                 console.log(results);
                 client.end();
-                callback(null, profileDbQuery, profileArray, sendRes);
+                updateProfileDb(null);
+            }
+        });
+    });
+
+    function updateProfileDb(err) {
+        if (err) {
+        return console.log(err);
+        }
+        var query = 'UPDATE user_profile SET age = $1, city = $2, homepage = $3, color = $4 WHERE id = $5';
+        var client = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+        client.connect();
+        client.query(query, [updatedAge, updatedCity, updatedHomepage, updatedColor, userId], function(err, results) {
+            if (err) {
+                return console.log(err);
+            } else {
+                console.log(results);
+                client.end();
+                sendRes(null);
             }
         });
     }
 
+    function sendRes(err) {
+        if (err) {
+            return console.log(err);
+        }
+        res.send('changed');
+    }
 });
 
 app.post('/moreUserData', function(req, res) {
@@ -199,7 +226,7 @@ app.post('/moreUserData', function(req, res) {
 
     client.query(query, [age, city, homepage, color, dbid], function(err, results) {
         if (err) {
-            console.log(err);
+            return console.log(err);
         } else {
             console.log(results);
             client.end();
@@ -211,15 +238,12 @@ app.post('/moreUserData', function(req, res) {
 app.get('/users', function(req, res) {
     console.log('Cookies: ', req.session);
     var allData;
-    var query = 'SELECT * FROM users JOIN user_profile ON users.id=user_profile.id';
-    myFunctions.getData(query, null, myFunctions.renderUserDataPage, req, res);
+    myFunctions.getData(null, myFunctions.renderUserDataPage, req, res);
 });
-
-
 
 app.get('/myprojects', function(req, res) {
     res.render('projectsPage', {
-        myProjects
+        myProjects: myProjects
     });
 });
 
@@ -263,19 +287,11 @@ app.post('/login', function(req, res) {
         console.log(results.rows);
         var hashedPassword = allData[0].password;
         console.log('submittedPassword ' +submittedPassword);
-        checkPassword(submittedPassword, hashedPassword, authorized);
+        myFunctions.checkPassword(submittedPassword, hashedPassword, authorized);
         client.end();
     });
 
-    function checkPassword(textEnteredInLoginForm, hashedPasswordFromDatabase, callback) {
-    bcrypt.compare(textEnteredInLoginForm, hashedPasswordFromDatabase, function (err, doesMatch) {
-        if (err) {
-            return callback(err);
-        }
-        console.log(doesMatch);
-        callback(null, doesMatch);
-    });
-    }
+
     function authorized(err, doesMatch) {
         if (err) {
             console.log(err);
