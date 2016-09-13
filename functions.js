@@ -14,8 +14,33 @@ client.on('error', function(err) {
     console.log(err);
 });
 
+module.exports.registerUser = function(userData, callback) {
+    hashPassword(userData.password, function(err, hash){
+        var pgClient = new pg.Client('postgres://postgres:'+dbPassword+'@localhost:5432/users');
+        pgClient.connect();
+        var query = 'INSERT INTO users (first_name, last_name, email, password) VALUES ($1, $2, $3, $4) RETURNING id';
+        pgClient.query(query, [userData.first, userData.last, userData.email, hash], function(err, results) {
+            if (err) {
+                console.log(err);
+                res.redirect('/getaname');
+            } else {
+                var newId = results.rows[0].id;
+                callback(null, newId);
+            }
+            pgClient.end();
+        });
+        client.del('cacheUserData', function(err, data) {
+            if (err) {
+                return console.log(err);
+            }
+            else {
+                console.log('cache deleted!');
+            }
+        });
+    });
+};
 
-module.exports.hashPassword = function(password, callback) {
+var hashPassword = module.exports.hashPassword = function(password, callback) {
     console.log('passw: '+password);
 
     bcrypt.genSalt(function(err, salt) {
@@ -26,14 +51,15 @@ module.exports.hashPassword = function(password, callback) {
             if (err) {
                 return callback(err);
             }
-
+            console.log('hashedPassword login: '+hash);
             callback(null, hash);
         });
     });
 };
 
 
-module.exports.getData = function(err, callback, req, res) {
+module.exports.getData = function(callback) {
+    var allData;
     client.get('cacheUserData', function(err, data){
         if (err) {
             return console.log(err);
@@ -45,9 +71,8 @@ module.exports.getData = function(err, callback, req, res) {
 
             pgClient.query(query, function(err, results) {
                 allData = results.rows;
-                console.log('res:'+res);
                 console.log('allData:'+ allData);
-                callback(req, res);
+                callback(null, allData);
                 pgClient.end();
                 var cacheUserData = JSON.stringify(allData);
                 client.set('cacheUserData', cacheUserData, function(err, data) {
@@ -61,55 +86,11 @@ module.exports.getData = function(err, callback, req, res) {
         } else {
             console.log('cacheData');
             allData = JSON.parse(data);
-            callback(req, res);
+            callback(null, allData);
         }
     });
 };
 
-module.exports.renderUserDataPage = function(req, res) {
-    var colorArray = [];
-    var cityArray = [];
-    var selectedColor = req.query.color;
-    var selectedCity = req.query.city;
-    console.log('res in renderUserDataPage: '+res);
-
-    getUniques('color', colorArray);
-    getUniques('city', cityArray);
-
-    function getUniques(selected, myArray) {
-        var unique = {};
-        for (var i = 0; i < allData.length; i++) {
-            var key = allData[i][selected];
-            unique[key] = selected;
-        }
-        for (var colorKey in unique) {
-            var entry = {};
-            entry[selected] = colorKey;
-            myArray.push(entry);
-        }
-    }
-    if (selectedColor && selectedCity === undefined) {
-        allData = allData.filter(function(obj) {
-            return obj.color === selectedColor;
-        });
-    }
-    if (selectedCity && selectedColor === undefined) {
-        allData = allData.filter(function(obj) {
-            return obj.city === selectedCity;
-        });
-    }
-    if (selectedCity && selectedColor) {
-        allData = allData.filter(function(obj) {
-            return obj.color === selectedColor && obj.city === selectedCity;
-        });
-    }
-
-    res.render('userDataTable', {
-        colorArray: colorArray,
-        cityArray: cityArray,
-        allData: allData
-    });
-};
 
 module.exports.checkPassword = function(textEnteredInLoginForm, hashedPasswordFromDatabase, callback) {
 bcrypt.compare(textEnteredInLoginForm, hashedPasswordFromDatabase, function (err, doesMatch) {
